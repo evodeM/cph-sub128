@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SUB 1:28 — CPH Half 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;500;600;700&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grain"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">▲</div>
+      <div class="brand-text">
+        <div class="brand-name">SUB 1:28</div>
+        <div class="brand-sub">CPH HALF · 20 SEP 2026</div>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="plan">Plan</button>
+      <button class="tab" data-tab="logger">Logbog</button>
+      <button class="tab" data-tab="zones">Zoner</button>
+      <button class="tab" data-tab="prehab">Prehab</button>
+      <button class="tab" data-tab="coach">AI Coach</button>
+      <button class="tab" data-tab="progress">Fremskridt</button>
+      <button class="tab" data-tab="settings">Indstillinger</button>
+    </nav>
+    <div class="countdown-mini" id="countdown-mini">— dage</div>
+    <div class="sync-dot" id="sync-dot" title="Synkroniseringsstatus"></div>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="hero">
+        <div class="hero-left">
+          <div class="eyebrow">Race day</div>
+          <div class="race-date">SØN · 20 SEP · 2026</div>
+          <div class="countdown" id="countdown-big">—</div>
+          <div class="countdown-label">dage til kanonen</div>
+        </div>
+        <div class="hero-right">
+          <div class="goal-tiers">
+            <div class="goal-tier tier-a">
+              <div class="tier-label">A · STRETCH</div>
+              <div class="tier-time">1:28:00</div>
+              <div class="tier-pace">4:10 /km</div>
+            </div>
+            <div class="goal-tier tier-b">
+              <div class="tier-label">B · REALISTISK</div>
+              <div class="tier-time">1:30:00</div>
+              <div class="tier-pace">4:16 /km</div>
+            </div>
+            <div class="goal-tier tier-c">
+              <div class="tier-label">C · SAFE</div>
+              <div class="tier-time">1:32:00</div>
+              <div class="tier-pace">4:21 /km</div>
+            </div>
+          </div>
+          <div class="gap-block">
+            <div class="eyebrow">Coros forudsiger</div>
+            <div class="gap-time" id="predict-time">1:38:49</div>
+            <div class="gap-delta" id="gap-delta">−10:49 til A · −08:49 til B</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- I DAG — vises øverst, altid synlig -->
+      <div class="card today-card" id="today-card"></div>
+
+      <div class="grid grid-3">
+        <div class="card stat-card">
+          <div class="stat-label">Threshold pace</div>
+          <div class="stat-value mono" id="stat-thr-pace">4:28</div>
+          <div class="stat-unit">/km</div>
+          <div class="stat-trend">Mål ved peak: 4:20</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">LTHR / MaxHR</div>
+          <div class="stat-value mono"><span id="stat-lthr">174</span> <span class="dim">/</span> <span id="stat-mhr">195</span></div>
+          <div class="stat-unit">bpm</div>
+          <div class="stat-trend">Hvilepuls 53</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Bedste halvmarathon</div>
+          <div class="stat-value mono">1:28:48</div>
+          <div class="stat-unit">15 sep 2024</div>
+          <div class="stat-trend accent">Du HAR gjort det før</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">DENNE UGE</div>
+            <div class="card-meta" id="week-meta">— / 17</div>
+          </div>
+          <div id="this-week-content" class="this-week"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">FASE-OVERSIGT</div>
+            <div class="card-meta">17 ugers cyklus</div>
+          </div>
+          <div class="phase-list" id="phase-list"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">RACE PACE STRATEGI · 1:28:00</div>
+          <div class="card-meta">4:10 /km</div>
+        </div>
+        <div class="splits-grid" id="splits-grid"></div>
+        <div class="strategy-note">
+          <strong>Strategi (revideret):</strong> EVEN PACE 4:10/km hele vejen. Lås pacen fra km 1, hold den til km 18, så give de sidste 3 km hvad du har. Negative splits er for løbere der ikke kender deres tærskel — du kender din. Modstå adrenalin-acceleration de første 2 km.
+          <br><br>
+          <strong>Mål-hierarki:</strong> A: 1:28:00 (4:10/km) · B: 1:30:00 (4:16/km) · C: 1:32:00 (4:21/km). Beslut A vs B baseret på tune-up 10k uge 14.
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAN -->
+    <section class="view" id="view-plan">
+      <div class="view-header">
+        <h2>17-ugers plan</h2>
+        <div class="view-sub">25 maj → 20 september 2026 · 3 løb + 1 styrke / uge</div>
+      </div>
+      <div class="phase-tabs" id="phase-tabs"></div>
+      <div id="plan-weeks"></div>
+    </section>
+
+    <!-- LOGGER -->
+    <section class="view" id="view-logger">
+      <div class="view-header">
+        <h2>Logbog</h2>
+        <div class="view-sub">Log dine pas — danner basis for AI coach justeringer</div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">NYT PAS</div></div>
+          <form id="log-form" class="log-form">
+            <div class="form-row">
+              <label>Dato<input type="date" name="date" required /></label>
+              <label>Type
+                <select name="type">
+                  <option value="easy">Easy</option>
+                  <option value="long">Long run</option>
+                  <option value="tempo">Tempo</option>
+                  <option value="threshold">Threshold</option>
+                  <option value="intervals">Intervaller (VO2)</option>
+                  <option value="racepace">Race pace</option>
+                  <option value="strides">Strides</option>
+                  <option value="strength">Styrke</option>
+                  <option value="prehab">Prehab</option>
+                  <option value="cross">Cross-training</option>
+                  <option value="rest">Hviledag</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>Distance (km)<input type="number" step="0.01" name="km" /></label>
+              <label>Tid (mm:ss eller h:mm:ss)<input type="text" name="time" placeholder="45:30" /></label>
+            </div>
+            <div class="form-row">
+              <label>Snitpuls<input type="number" name="hr" /></label>
+              <label>Cadence (spm)<input type="number" name="cadence" placeholder="178+" /></label>
+            </div>
+            <div class="form-row">
+              <label>RPE 1-10<input type="number" min="1" max="10" name="rpe" /></label>
+              <label>HRV i morges (ms)<input type="number" name="hrv" /></label>
+            </div>
+            <div class="form-row">
+              <label>Smerte/ømhed (0-10)<input type="number" min="0" max="10" name="pain" /></label>
+              <label>Hvor sad smerten?<select name="painLocation">
+                <option value="">— ingen smerte —</option>
+                <option value="itbs-l">ITBS venstre (yderside knæ)</option>
+                <option value="itbs-r">ITBS højre (yderside knæ)</option>
+                <option value="itbs-both">ITBS bilateralt</option>
+                <option value="patellar">Lige under knæ (patellar)</option>
+                <option value="shin-l">Skinneben venstre</option>
+                <option value="shin-r">Skinneben højre</option>
+                <option value="shin-both">Skinneben bilateralt</option>
+                <option value="other">Andet</option>
+              </select></label>
+            </div>
+            <label>Noter<textarea name="notes" rows="3" placeholder="Hvordan føltes det? Vejret? Hvor mærkede du IT-bånd/skinneben?"></textarea></label>
+            <button type="submit" class="btn-primary">Gem pas</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">UGENS SUMMERY</div>
+            <div class="card-meta" id="logger-week-meta">—</div>
+          </div>
+          <div id="weekly-summary"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">SENESTE PAS</div>
+        </div>
+        <div id="log-list"></div>
+      </div>
+    </section>
+
+    <!-- ZONES -->
+    <section class="view" id="view-zones">
+      <div class="view-header">
+        <h2>Pace & HR zoner</h2>
+        <div class="view-sub">Bygget på dine Coros tærskeldata. Opdater når test viser ny tærskel.</div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">INPUT</div></div>
+          <div class="form-row">
+            <label>Threshold pace (mm:ss/km)<input type="text" id="in-thr-pace" value="4:28" /></label>
+            <label>LTHR (bpm)<input type="number" id="in-lthr" value="174" /></label>
+          </div>
+          <div class="form-row">
+            <label>Max HR<input type="number" id="in-mhr" value="195" /></label>
+            <label>Hvilepuls<input type="number" id="in-rhr" value="53" /></label>
+          </div>
+          <button class="btn-primary" id="zone-recalc">Genberegn zoner</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">RACE PACES</div></div>
+          <div class="race-paces" id="race-paces"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">PACE ZONER</div></div>
+          <div class="zones-table" id="pace-zones"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">PULSZONER</div></div>
+          <div class="zones-table" id="hr-zones"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREHAB -->
+    <section class="view" id="view-prehab">
+      <div class="view-header">
+        <h2>Prehab — skadesforebyggelse</h2>
+        <div class="view-sub">Skræddersyet til dine problemområder: IT-bånd, knæ, shinsplints. Klik på en del af kroppen.</div>
+      </div>
+
+      <div class="prehab-layout">
+        <div class="card prehab-body-card">
+          <div class="card-header"><div class="card-title">BODY MAP</div></div>
+          <div class="body-map-wrap" id="body-map-wrap"></div>
+          <div class="prehab-legend">
+            <div><span class="dot pain"></span>Aktivt problem</div>
+            <div><span class="dot watch"></span>Risiko-zone</div>
+            <div><span class="dot ok"></span>Forebyggelse</div>
+          </div>
+        </div>
+        <div class="card prehab-exercise-card">
+          <div class="card-header">
+            <div class="card-title" id="exercise-area-title">Vælg en del af kroppen</div>
+            <div class="card-meta" id="exercise-area-meta">—</div>
+          </div>
+          <div id="exercise-list"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">DAGLIG RUTINE — 10 MIN FØR LØB</div>
+          <div class="card-meta">Stop skader før de starter</div>
+        </div>
+        <div id="daily-routine"></div>
+      </div>
+    </section>
+
+    <!-- AI COACH -->
+    <section class="view" id="view-coach">
+      <div class="coach-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="coach-sidebar">
+          <div class="coach-sidebar-header">
+            <div class="coach-avatar">▲</div>
+            <div>
+              <div class="coach-name">Coach</div>
+              <div class="coach-status" id="coach-status-dot">● Offline</div>
+            </div>
+            <button class="btn-ghost coach-new-btn" id="coach-new-chat" title="Ny samtale">↺</button>
+          </div>
+
+          <div class="coach-quick-label">Hurtige spørgsmål</div>
+          <div class="coach-quick-list" id="quick-prompts"></div>
+
+          <div class="coach-sidebar-section">
+            <div class="coach-sidebar-title">OPSÆTNING</div>
+            <label class="coach-label">API-key
+              <input type="password" id="ai-key" placeholder="AIza..." class="coach-input" />
+            </label>
+            <label class="coach-label">Model
+              <select id="ai-model" class="coach-input">
+                <option value="gemini-2.5-flash">gemini-2.5-flash (anbefales)</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+              </select>
+            </label>
+            <div class="coach-btns">
+              <button class="btn-primary" id="ai-save">Gem</button>
+              <button class="btn-ghost" id="ai-test">Test</button>
+            </div>
+            <div class="coach-api-link">
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Hent gratis Gemini key →</a>
+            </div>
+          </div>
+        </aside>
+
+        <!-- CHAT MAIN -->
+        <div class="coach-chat">
+          <div class="coach-messages" id="coach-messages">
+            <div class="coach-welcome">
+              <div class="coach-welcome-icon">▲</div>
+              <div class="coach-welcome-title">Hej — jeg er din AI Coach</div>
+              <div class="coach-welcome-text">
+                Jeg kender din plan, dine skader (bilateral ITBS + shinsplints), dine PRs og dine seneste pas.
+                Spørg om hvad som helst — fra justeringer af denne uges plan til race-day strategi.
+              </div>
+              <div class="coach-welcome-chips" id="welcome-chips"></div>
+            </div>
+          </div>
+
+          <div class="coach-input-row">
+            <textarea
+              id="ai-question"
+              class="coach-textarea"
+              rows="1"
+              placeholder="Skriv til coachen..."
+            ></textarea>
+            <button class="coach-send-btn" id="ai-ask" title="Send (Enter)">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M16 9L2 2l3 7-3 7 14-7z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <div class="coach-footer-note">
+            Samtalehistorik + din logbog + plan sendes som kontekst · Data forlader ikke din browser undtagen til Gemini API
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FREMSKRIDT -->
+    <section class="view" id="view-progress">
+      <div class="view-header">
+        <h2>Fremskridt</h2>
+        <div class="view-sub">ACWR · Compliance · Skadetrend · Volume — evidensbaseret belastningsstyring</div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="grid grid-3">
+        <div class="card stat-card">
+          <div class="stat-label">ACWR — træningsbelastning</div>
+          <div class="stat-value mono" id="acwr-value">—</div>
+          <div class="stat-unit">Akut / Kronisk ratio</div>
+          <div class="acwr-track">
+            <div class="acwr-fill" id="acwr-fill"></div>
+            <div class="acwr-needle" id="acwr-needle"></div>
+          </div>
+          <div class="acwr-labels"><span>Lav</span><span>Sweet spot</span><span>Risiko</span></div>
+          <div class="stat-trend" id="acwr-status">Logger pas for at beregne</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Compliance — denne uge</div>
+          <div class="stat-value mono" id="compliance-week-pct">—</div>
+          <div class="stat-unit" id="compliance-week-detail">pas gennemført</div>
+          <div class="compliance-bar-outer">
+            <div class="compliance-bar-inner" id="compliance-bar-inner"></div>
+          </div>
+          <div class="stat-trend" id="compliance-overall">Samlet plan: —</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Smerte — seneste 7 dage</div>
+          <div class="stat-value mono" id="pain-max-week">—</div>
+          <div class="stat-unit">/10 NRS</div>
+          <div class="traffic-lights" id="traffic-lights"></div>
+          <div class="stat-trend" id="pain-trend-label">—</div>
+        </div>
+      </div>
+
+      <!-- Charts row 1 -->
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">UGENTLIG LØBEVOLUME</div>
+            <div class="card-meta">km · seneste 8 uger</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-volume"></canvas></div>
+          <div class="chart-note">Blå linje = planlagt volumen. Grøn = gennemført. Deload-uger markeret.</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">SKADETREND</div>
+            <div class="card-meta">Max NRS smerteniveau per zone · 4 uger</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-injury"></canvas></div>
+          <div class="chart-note">Rød zone ≥ 5: stop løb, kun prehab. Gul zone 3–4: modificér. Grøn ≤ 2: fortsæt planlagt.</div>
+        </div>
+      </div>
+
+      <!-- Charts row 2 -->
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">ACWR TREND</div>
+            <div class="card-meta">Gabbett 2016 · sweet spot 0,8–1,3</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-acwr"></canvas></div>
+          <div class="chart-note">ACWR = Akut belastning (7d) / Kronisk belastning (28d rullende snit). Over 1,5 = forhøjet skaderisiko.</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">RPE & HRV TREND</div>
+            <div class="card-meta">Overtrænings-indikator · sessioner</div>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-rpe-hrv"></canvas></div>
+          <div class="chart-note">Stigende RPE + faldende HRV over 5+ dage = tegn på akkumuleret træthed. Overvej deload.</div>
+        </div>
+      </div>
+
+      <!-- Compliance per week -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">COMPLIANCE PER UGE</div>
+          <div class="card-meta">Planlagte vs gennemførte — markér pas i Plan-fanen</div>
+        </div>
+        <div id="compliance-weeks-grid" class="compliance-weeks-grid"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="view-header">
+        <h2>Indstillinger</h2>
+        <div class="view-sub">Profil, data, eksport/import</div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">PROFIL & PRs</div></div>
+          <div class="form-row">
+            <label>Alder<input type="number" id="set-age" /></label>
+            <label>Vægt (kg)<input type="number" step="0.1" id="set-weight" /></label>
+          </div>
+          <div class="form-row">
+            <label>5km PR (mm:ss)<input type="text" id="set-5k" value="19:13" /></label>
+            <label>10km PR (mm:ss)<input type="text" id="set-10k" value="40:30" /></label>
+          </div>
+          <div class="form-row">
+            <label>Halvmarathon PR (h:mm:ss)<input type="text" id="set-hm" value="1:28:48" /></label>
+            <label>Marathon PR (h:mm:ss)<input type="text" id="set-m" value="3:34:29" /></label>
+          </div>
+          <button class="btn-primary" id="settings-save">Gem profil</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">DATA</div></div>
+          <p class="muted">Alle data ligger lokalt i din browser. Eksporter regelmæssigt som backup.</p>
+          <div class="form-row">
+            <button class="btn-ghost" id="export-data">Eksporter JSON</button>
+            <button class="btn-ghost" id="import-data">Importer JSON</button>
+          </div>
+          <button class="btn-danger" id="reset-data">Nulstil alle logs</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">KONTO</div></div>
+          <div class="account-info" id="account-info">Ikke logget ind</div>
+          <div class="form-row" style="margin-top:14px">
+            <button class="btn-ghost" id="logout-btn">Log ud</button>
+          </div>
+          <input type="file" id="import-file" accept="application/json" style="display:none" />
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Bygget til sub 1:28 · 20 sep 2026 · Data lever lokalt i din browser</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- AUTH OVERLAY — vises hvis ikke logget ind -->
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">▲</div>
+      <div class="auth-title">SUB 1:28</div>
+      <div class="auth-sub">Log ind for at synkronisere dine data på tværs af enheder</div>
+      <div id="auth-form-wrap">
+        <label class="auth-label">Email
+          <input type="email" id="auth-email" placeholder="din@email.dk" class="auth-input" />
+        </label>
+        <label class="auth-label">Adgangskode
+          <input type="password" id="auth-password" placeholder="••••••••" class="auth-input" />
+        </label>
+        <button class="btn-primary auth-btn" id="auth-send">Log ind</button>
+        <div class="auth-msg" id="auth-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBIL BOTTOM NAVIGATION -->
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Primær navigation">
+    <button class="mnav-item active" data-tab="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Hjem</span>
+    </button>
+    <button class="mnav-item" data-tab="plan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Plan</span>
+    </button>
+    <button class="mnav-item mnav-log" data-tab="logger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>Log</span>
+    </button>
+    <button class="mnav-item" data-tab="coach">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span>Coach</span>
+    </button>
+    <button class="mnav-item" id="mnav-more">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+      <span>Mere</span>
+    </button>
+  </nav>
+
+  <!-- MERE-DRAWER (slide-up sheet) -->
+  <div class="more-backdrop" id="more-backdrop"></div>
+  <div class="more-sheet" id="more-sheet">
+    <div class="more-sheet-handle"></div>
+    <div class="more-sheet-grid">
+      <button class="more-sheet-item" data-tab="zones">
+        <span class="msi-icon">⚡</span><span>Zoner</span>
+      </button>
+      <button class="more-sheet-item" data-tab="prehab">
+        <span class="msi-icon">🦵</span><span>Prehab</span>
+      </button>
+      <button class="more-sheet-item" data-tab="progress">
+        <span class="msi-icon">📊</span><span>Fremskridt</span>
+      </button>
+      <button class="more-sheet-item" data-tab="settings">
+        <span class="msi-icon">⚙️</span><span>Indstillinger</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="data.js"></script>
+  <script src="plan.js"></script>
+  <script src="exercises.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

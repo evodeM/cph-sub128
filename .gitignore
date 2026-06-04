@@ -1,0 +1,12 @@
+# Supabase + API credentials
+config.js
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Netlify generated
+.netlify/
