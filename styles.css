@@ -2035,6 +2035,7 @@ textarea { resize: vertical; min-height: 60px; font-family: var(--font-body); }
 }
 .sync-dot.synced  { background: var(--green); }
 .sync-dot.error   { background: var(--accent); }
+.sync-dot.queued  { background: var(--yellow, #e0b34c); animation: syncPulse 2s ease-in-out infinite; }
 
 @keyframes syncPulse {
   0%, 100% { opacity: 1; transform: scale(1); }

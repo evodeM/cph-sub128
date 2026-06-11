@@ -823,10 +823,10 @@ function setupAi() {
     if (!state.ai.key) { flash("Indtast API-key først"); return; }
     flash("Tester...");
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${state.ai.model}:generateContent?key=${state.ai.key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${state.ai.model}:generateContent`;
       const resp = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": state.ai.key },
         body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "Svar kun: OK" }] }] })
       });
       if (resp.ok) { flash("✓ Forbindelse OK"); updateCoachStatus(true); }
@@ -1113,7 +1113,7 @@ function buildPatchProposalHtml(patch, proposalId) {
 
 async function callGeminiChat(history) {
   const model = state.ai.model || "gemini-2.5-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.ai.key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   // System context injected as first user turn + model ack
   const systemContext = buildAiContext();
@@ -1130,7 +1130,7 @@ async function callGeminiChat(history) {
 
   const resp = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": state.ai.key },
     body: JSON.stringify({
       contents: [...systemPreamble, ...history],
       generationConfig: {
@@ -1212,12 +1212,12 @@ function hideAuthOverlay() {
 }
 
 function updateSyncStatus(status) {
-  // status: "offline" | "syncing" | "synced" | "error"
+  // status: "offline" | "syncing" | "synced" | "error" | "queued"
   const dot = document.getElementById("sync-dot");
   if (!dot) return;
   dot.className = "sync-dot";
   if (status !== "offline") dot.classList.add(status);
-  const titles = { offline: "Ikke logget ind", syncing: "Synkroniserer...", synced: "Data synkroniseret", error: "Synkroniseringsfejl" };
+  const titles = { offline: "Ikke logget ind", syncing: "Synkroniserer...", synced: "Data synkroniseret", error: "Synkroniseringsfejl", queued: "Ændringer venter på net — synkes automatisk" };
   dot.title = titles[status] || status;
 }
 
@@ -1321,11 +1321,79 @@ async function migrateLocalLogs() {
   }
 }
 
-// Insert ét nyt log til Supabase — opdaterer lokalt ID med Supabase UUID
-async function sbInsertLog(log) {
-  if (!currentUser) return;
+// ============================================================
+// OFFLINE SYNC-KØ
+// Fejlede writes (fx pga. manglende net) gemmes i localStorage
+// og retryes automatisk når forbindelsen er tilbage.
+// ============================================================
+const SYNC_QUEUE_KEY = "sub128.syncQueue";
+
+function loadSyncQueue() {
+  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)) || []; }
+  catch { return []; }
+}
+function saveSyncQueue(q) { localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
+
+function enqueueSync(item) {
+  let q = loadSyncQueue();
+  // Dedup: kun seneste profil-gem er relevant (læser state ved flush)
+  if (item.op === "saveProfile") q = q.filter(i => i.op !== "saveProfile");
+  // Dedup: toggle af samme pas ophæver tidligere op for samme key
+  if (item.op === "insertCompleted" || item.op === "deleteCompleted") {
+    q = q.filter(i => !((i.op === "insertCompleted" || i.op === "deleteCompleted") && i.key === item.key));
+  }
+  // Slettes et log der stadig venter på insert, fjernes insert blot fra køen
+  if (item.op === "deleteLog") {
+    const pendingIdx = q.findIndex(i => i.op === "insertLog" && i.log?.id === item.id);
+    if (pendingIdx !== -1) { q.splice(pendingIdx, 1); saveSyncQueue(q); updateSyncStatus("queued"); return; }
+  }
+  q.push(item);
+  saveSyncQueue(q);
+  updateSyncStatus("queued");
+}
+
+// Udfør én kø-operation — returnerer true ved succes
+async function execSyncOp(item) {
+  switch (item.op) {
+    case "insertLog":       return await execInsertLog(item.log);
+    case "deleteLog":       return await execDeleteLog(item.id);
+    case "saveProfile":     return await execSaveProfile();
+    case "insertCompleted": return await execInsertCompleted(item.key);
+    case "deleteCompleted": return await execDeleteCompleted(item.key);
+    default: return true; // ukendt op — drop den
+  }
+}
+
+let flushing = false;
+async function flushSyncQueue() {
+  if (flushing || !currentUser || !navigator.onLine) return;
+  let q = loadSyncQueue();
+  if (q.length === 0) return;
+  flushing = true;
+  updateSyncStatus("syncing");
+  try {
+    while (q.length > 0) {
+      const ok = await execSyncOp(q[0]);
+      if (!ok) { updateSyncStatus("queued"); return; } // stadig fejl — prøv senere
+      q.shift();
+      saveSyncQueue(q);
+    }
+    updateSyncStatus("synced");
+  } finally {
+    flushing = false;
+  }
+}
+
+window.addEventListener("online", () => flushSyncQueue());
+
+// ============================================================
+// SUPABASE WRITES — exec* rammer netværket, sb* wrapper med kø-fallback
+// ============================================================
+
+// Insert ét nyt log — opdaterer lokalt ID med Supabase UUID
+async function execInsertLog(log) {
   const { data, error } = await sb.from("logs").insert(localLogToDb(log)).select().single();
-  if (error) { console.warn("Log insert fejl:", error); return; }
+  if (error) { console.warn("Log insert fejl:", error); return false; }
   if (data) {
     // Erstat den lokale log (fundet ved midlertidig Date.now() id) med Supabase UUID
     const idx = state.logs.findIndex(l => l.id === log.id);
@@ -1334,40 +1402,76 @@ async function sbInsertLog(log) {
       saveLogs();
     }
   }
+  return true;
 }
 
-// Slet ét log fra Supabase
+async function sbInsertLog(log) {
+  if (!currentUser) return;
+  if (!navigator.onLine) { enqueueSync({ op: "insertLog", log }); return; }
+  const ok = await execInsertLog(log);
+  if (!ok) enqueueSync({ op: "insertLog", log });
+}
+
+// Slet ét log
+async function execDeleteLog(id) {
+  const { error } = await sb.from("logs").delete().eq("id", id).eq("user_id", currentUser.id);
+  if (error) { console.warn("Log delete fejl:", error); return false; }
+  return true;
+}
+
 async function sbDeleteLog(id) {
   if (!currentUser) return;
-  const { error } = await sb.from("logs").delete().eq("id", id).eq("user_id", currentUser.id);
-  if (error) console.warn("Log delete fejl:", error);
+  if (!navigator.onLine) { enqueueSync({ op: "deleteLog", id }); return; }
+  const ok = await execDeleteLog(id);
+  if (!ok) enqueueSync({ op: "deleteLog", id });
 }
 
-// Gem/opdater profil i Supabase — inkl. AI-indstillinger så de synker på tværs af enheder
-async function sbSaveProfile() {
-  if (!currentUser) return;
+// Gem/opdater profil — inkl. AI-indstillinger så de synker på tværs af enheder
+async function execSaveProfile() {
   const { error } = await sb.from("profile").upsert({
     user_id: currentUser.id,
     data: { ...state.profile, _ai: state.ai },
     updated_at: new Date().toISOString()
   });
-  if (error) console.warn("Profile upsert fejl:", error);
-  else updateSyncStatus("synced");
+  if (error) { console.warn("Profile upsert fejl:", error); return false; }
+  return true;
 }
 
-// Tilføj gennemført pas til Supabase
+async function sbSaveProfile() {
+  if (!currentUser) return;
+  if (!navigator.onLine) { enqueueSync({ op: "saveProfile" }); return; }
+  const ok = await execSaveProfile();
+  if (ok) updateSyncStatus("synced");
+  else enqueueSync({ op: "saveProfile" });
+}
+
+// Tilføj gennemført pas
+async function execInsertCompleted(key) {
+  const { error } = await sb.from("completed_workouts").upsert({ user_id: currentUser.id, key });
+  if (error) { console.warn("Completed insert fejl:", error); return false; }
+  return true;
+}
+
 async function sbInsertCompleted(key) {
   if (!currentUser) return;
-  const { error } = await sb.from("completed_workouts").upsert({ user_id: currentUser.id, key });
-  if (error) console.warn("Completed insert fejl:", error);
+  if (!navigator.onLine) { enqueueSync({ op: "insertCompleted", key }); return; }
+  const ok = await execInsertCompleted(key);
+  if (!ok) enqueueSync({ op: "insertCompleted", key });
 }
 
-// Fjern gennemført pas fra Supabase
-async function sbDeleteCompleted(key) {
-  if (!currentUser) return;
+// Fjern gennemført pas
+async function execDeleteCompleted(key) {
   const { error } = await sb.from("completed_workouts").delete()
     .eq("user_id", currentUser.id).eq("key", key);
-  if (error) console.warn("Completed delete fejl:", error);
+  if (error) { console.warn("Completed delete fejl:", error); return false; }
+  return true;
+}
+
+async function sbDeleteCompleted(key) {
+  if (!currentUser) return;
+  if (!navigator.onLine) { enqueueSync({ op: "deleteCompleted", key }); return; }
+  const ok = await execDeleteCompleted(key);
+  if (!ok) enqueueSync({ op: "deleteCompleted", key });
 }
 
 // Auth-opsætning: magic link flow + onAuthStateChange
@@ -1408,6 +1512,7 @@ async function setupAuth() {
     if (currentUser) {
       hideAuthOverlay();
       updateSyncStatus("syncing");
+      await flushSyncQueue();   // push ventende offline-writes FØR server-data hentes
       await loadFromSupabase();
       renderAll(); // re-render med Supabase-data
     } else {
@@ -2020,13 +2125,23 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSettings();
   setupAuth();
   setupSyncTriggers();
+  registerServiceWorker();
 });
+
+// PWA: service worker gør appen installérbar og hurtig/offline-venlig
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  // SW kræver https eller localhost — springes over ved file://
+  if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
+  navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW-registrering fejlede:", err));
+}
 
 // Auto-sync + klikbar sync-dot
 function setupSyncTriggers() {
   // 1. Sync når browser-tabben bliver aktiv igen (skift fra mobil → computer)
   document.addEventListener("visibilitychange", async () => {
     if (document.visibilityState === "visible" && currentUser) {
+      await flushSyncQueue(); // push evt. ventende offline-writes først
       await loadFromSupabase();
       renderAll();
     }
